@@ -310,6 +310,35 @@
         .updated-status{font-size:11px;color:#6c91a5;padding-bottom:13px}
         @media(max-width:600px){.leaderboard-tools{padding:0 14px 18px;gap:9px}.tool-field{flex:1;min-width:130px}.tool-button{flex:1}.updated-status{width:100%;padding-bottom:0}}
 
+        .compare-launch{border-color:#fa54d9;background:linear-gradient(135deg,#28102d,#071c2b);color:#ffe2fb;box-shadow:0 0 14px #fa54d933}
+        .compare-launch:hover{border-color:#ff8be7;box-shadow:0 0 22px #fa54d977}
+        .compare-overlay{position:fixed;inset:0;z-index:120;background:rgba(0,5,12,.86);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px}
+        .compare-overlay[hidden]{display:none}
+        .compare-modal{position:relative;width:min(780px,100%);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#081823,#090b16 72%);border:1px solid #1f7185;border-radius:20px;padding:26px;box-shadow:0 0 35px #00d9ff24,0 0 70px #fa54d91a}
+        .compare-close{position:absolute;right:14px;top:14px}
+        .compare-kicker{color:#00e5ff;font-size:11px;font-weight:900;letter-spacing:2px;margin-bottom:8px}
+        .compare-modal h2{font-size:clamp(23px,5vw,32px);font-weight:900;color:white;text-shadow:0 0 18px #00d9ff66}
+        .compare-description{color:#8da6b9;font-size:13px;line-height:1.6;margin:8px 0 20px;max-width:580px}
+        .compare-picks{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end}
+        .compare-picks .tool-field{min-width:0}
+        .compare-picks select{width:100%;margin-top:6px;min-height:44px;background:#06131d;color:#e8fbff;border:1px solid #176074;border-radius:10px;padding:0 10px}
+        .compare-versus{font-weight:1000;color:#fa54d9;text-shadow:0 0 12px #fa54d9;font-size:16px;padding-bottom:13px}
+        .compare-results{margin-top:22px}
+        .compare-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+        .compare-player-summary{border:1px solid #17485a;border-radius:13px;background:#06131d;padding:15px;text-align:center;min-width:0}
+        .compare-player-summary img{width:54px;height:54px;border-radius:10px;margin-bottom:8px}
+        .compare-player-summary strong{display:block;color:#f3fbff;overflow-wrap:anywhere;font-size:15px}
+        .compare-player-summary span{display:block;color:#00e5ff;font-size:12px;margin-top:5px}
+        .compare-tier-table{width:100%;border-collapse:collapse;font-size:13px}
+        .compare-tier-table th,.compare-tier-table td{padding:11px 8px;border-bottom:1px solid #15313e;text-align:center}
+        .compare-tier-table th{color:#7799aa;font-size:10px;letter-spacing:1px}
+        .compare-tier-table td:first-child{text-align:left;color:#c3d9e5;font-weight:800}
+        .compare-tier-table td{color:#e8fbff;font-weight:800}
+        .compare-tier-table .better-tier{color:#5bffcb;text-shadow:0 0 10px #5bffcb55}
+        .compare-tier-table .same-tier{color:#7799aa}
+        .compare-winner{color:#5bffcb!important;font-size:11px}
+        @media(max-width:560px){.compare-modal{padding:22px 14px}.compare-picks{grid-template-columns:1fr;gap:10px}.compare-versus{text-align:center;padding:0}.compare-tier-table th,.compare-tier-table td{padding:9px 4px;font-size:11px}.compare-player-summary{padding:10px}}
+
 </style>
 </head>
 <body>
@@ -340,9 +369,7 @@
         <label class="tool-field"><span>REGION</span>
             <select id="regionFilter" aria-label="Filter by region"><option value="all">All regions</option></select>
         </label>
-        <label class="tool-field"><span>SORT BY</span>
-            <select id="sortPlayers" aria-label="Sort players"><option value="rank">Leaderboard rank</option><option value="points">Most points</option><option value="name">Username A–Z</option></select>
-        </label>
+        <button id="openCompare" class="tool-button compare-launch" type="button"><i class="fa-solid fa-code-compare"></i> Compare Players</button>
         <button id="refreshPlayers" class="tool-button" type="button"><i class="fa-solid fa-rotate"></i> Refresh</button>
         <span id="updatedStatus" class="updated-status" role="status">Waiting for player data…</span>
     </section>
@@ -384,6 +411,21 @@
         </section>
         <div class="grid-layout" id="gridLayout"></div>
     </main>
+
+    <div class="compare-overlay" id="compareModal" role="dialog" aria-modal="true" aria-labelledby="compareTitle" hidden>
+        <div class="compare-modal">
+            <button class="close-modal compare-close" id="closeCompare" type="button" aria-label="Close comparison"><i class="fa-solid fa-xmark"></i></button>
+            <div class="compare-kicker"><i class="fa-solid fa-bolt"></i> HEAD TO HEAD</div>
+            <h2 id="compareTitle">Compare Players</h2>
+            <p class="compare-description">Choose two players to compare their overall rank, points, region and every game-mode tier.</p>
+            <div class="compare-picks">
+                <label class="tool-field">PLAYER ONE<select id="comparePlayerOne" aria-label="Choose first player"></select></label>
+                <div class="compare-versus">VS</div>
+                <label class="tool-field">PLAYER TWO<select id="comparePlayerTwo" aria-label="Choose second player"></select></label>
+            </div>
+            <div id="compareResults" class="compare-results" aria-live="polite"></div>
+        </div>
+    </div>
 
     <!-- PROFILE MODAL -->
     <div class="modal-overlay" id="profileModal" onclick="closeModal(event)">
@@ -496,6 +538,7 @@
 
                 allPlayers = processedData;
                 populateRegionFilter();
+                if (typeof fillCompareOptions === 'function' && allPlayers.length) fillCompareOptions();
                 renderCurrentView();
                 const updated = document.getElementById('updatedStatus');
                 if (updated) updated.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -519,15 +562,12 @@
         function renderCurrentView() {
             const searchTerm = String(document.getElementById('searchBar')?.value || document.getElementById('modeSearchBar')?.value || '').trim().toLowerCase();
             const region = document.getElementById('regionFilter')?.value || 'all';
-            const sort = document.getElementById('sortPlayers')?.value || 'rank';
             let visiblePlayers = allPlayers.filter(player => {
                 const matchesName = String(player.username || '').toLowerCase().includes(searchTerm);
                 const matchesRegion = region === 'all' || String(player.region || 'N/A').toUpperCase() === region;
                 return matchesName && matchesRegion;
             });
-            if (sort === 'points') visiblePlayers.sort((a,b) => b.totalPoints - a.totalPoints);
-            else if (sort === 'name') visiblePlayers.sort((a,b) => String(a.username || '').localeCompare(String(b.username || '')));
-            else visiblePlayers.sort((a,b) => a.actualRank - b.actualRank);
+            visiblePlayers.sort((a,b) => a.actualRank - b.actualRank);
 
             if (currentMode === 'overall') {
                 document.getElementById('gridView').style.display = 'none';
@@ -730,6 +770,62 @@
                 document.body.style.overflow = '';
             }
         });
+        const compareModal = document.getElementById('compareModal');
+        const compareOne = document.getElementById('comparePlayerOne');
+        const compareTwo = document.getElementById('comparePlayerTwo');
+        function fillCompareOptions() {
+            const oldOne = compareOne.value, oldTwo = compareTwo.value;
+            const options = allPlayers.map(player => {
+                const username = String(player.username || 'Unknown player');
+                return '<option value="' + escapeHTML(username) + '">' + escapeHTML(username) + ' · #' + player.actualRank + '</option>';
+            }).join('');
+            compareOne.innerHTML = options; compareTwo.innerHTML = options;
+            if (allPlayers.some(p => String(p.username || '') === oldOne)) compareOne.value = oldOne;
+            if (allPlayers.some(p => String(p.username || '') === oldTwo)) compareTwo.value = oldTwo;
+            if (allPlayers.length > 1 && compareOne.value === compareTwo.value) compareTwo.selectedIndex = 1;
+            renderPlayerComparison();
+        }
+        function getCompareTier(player, mode) {
+            const value = String(player?.[mode] || 'NA').toUpperCase();
+            return value === 'NA' || value === '' ? '—' : value;
+        }
+        function renderPlayerComparison() {
+            const results = document.getElementById('compareResults');
+            const one = allPlayers.find(p => String(p.username || '') === compareOne.value);
+            const two = allPlayers.find(p => String(p.username || '') === compareTwo.value);
+            if (!one || !two) { results.innerHTML = '<div class="empty-state">Add at least two players to compare.</div>'; return; }
+            const summary = player => '<div class="compare-player-summary"><img loading="lazy" src="https://mc-heads.net/avatar/' + encodeURIComponent(String(player.username || 'MHF_Steve')) + '/64" alt=""><strong>' + escapeHTML(player.username || 'Unknown player') + '</strong><span>Rank #' + player.actualRank + ' · ' + player.totalPoints + ' points</span><span>' + escapeHTML(player.region || 'N/A') + '</span></div>';
+            const tierWeight = {'HT1':1,'LT1':2,'HT2':3,'LT2':4,'HT3':5,'LT3':6,'HT4':7,'LT4':8,'HT5':9,'LT5':10};
+            const rows = Object.keys(modeImages).map(mode => {
+                const a = getCompareTier(one, mode), b = getCompareTier(two, mode);
+                let classA = 'same-tier', classB = 'same-tier', winner = 'TIED';
+                if (a !== b) {
+                    const wa = tierWeight[a] || 99, wb = tierWeight[b] || 99;
+                    if (wa < wb) { classA = 'better-tier'; winner = escapeHTML(one.username || 'Player 1'); }
+                    else if (wb < wa) { classB = 'better-tier'; winner = escapeHTML(two.username || 'Player 2'); }
+                    else winner = 'NO TIER';
+                }
+                return '<tr><td>' + escapeHTML(mode.toUpperCase()) + '</td><td class="' + classA + '">' + escapeHTML(a) + '</td><td class="' + classB + '">' + escapeHTML(b) + '</td><td class="compare-winner">' + winner + '</td></tr>';
+            }).join('');
+            const overallWinner = one.totalPoints === two.totalPoints ? 'TIED' : escapeHTML((one.totalPoints > two.totalPoints ? one.username : two.username) || 'Player');
+            results.innerHTML = '<div class="compare-summary">' + summary(one) + summary(two) + '</div>' +
+                '<table class="compare-tier-table"><thead><tr><th>MODE</th><th>' + escapeHTML(one.username || 'PLAYER 1') + '</th><th>' + escapeHTML(two.username || 'PLAYER 2') + '</th><th>EDGE</th></tr></thead><tbody>' +
+                '<tr><td>OVERALL</td><td>#' + one.actualRank + ' · ' + one.totalPoints + ' pts</td><td>#' + two.actualRank + ' · ' + two.totalPoints + ' pts</td><td class="compare-winner">' + overallWinner + '</td></tr>' + rows + '</tbody></table>';
+        }
+        document.getElementById('openCompare').addEventListener('click', () => {
+            fillCompareOptions(); compareModal.hidden = false; document.body.style.overflow = 'hidden';
+            document.getElementById('closeCompare').focus();
+        });
+        function closeCompare() {
+            compareModal.hidden = true; document.body.style.overflow = '';
+            document.getElementById('openCompare').focus();
+        }
+        document.getElementById('closeCompare').addEventListener('click', closeCompare);
+        compareModal.addEventListener('click', event => { if (event.target === compareModal) closeCompare(); });
+        compareOne.addEventListener('change', renderPlayerComparison);
+        compareTwo.addEventListener('change', renderPlayerComparison);
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !compareModal.hidden) closeCompare(); });
+
         document.getElementById('searchBar').setAttribute('aria-label', 'Search players by Minecraft username');
         const modeSearchBar = document.getElementById('modeSearchBar');
         function syncSearch(source, target) {
@@ -739,7 +835,6 @@
         document.getElementById('searchBar').addEventListener('input', () => syncSearch(document.getElementById('searchBar'), modeSearchBar));
         modeSearchBar.addEventListener('input', () => syncSearch(modeSearchBar, document.getElementById('searchBar')));
         document.getElementById('regionFilter').addEventListener('change', renderCurrentView);
-        document.getElementById('sortPlayers').addEventListener('change', renderCurrentView);
         document.getElementById('refreshPlayers').addEventListener('click', async () => {
             const button = document.getElementById('refreshPlayers');
             button.disabled = true;

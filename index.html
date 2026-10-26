@@ -299,7 +299,18 @@
         @keyframes neon-pulse { 0%,100% { box-shadow:0 0 10px rgba(183,255,60,.28); } 50% { box-shadow:0 0 22px rgba(183,255,60,.52),0 0 32px rgba(0,245,255,.12); } }
         @media(max-width:768px) { .compare-search-section { padding:0 12px 18px; } .compare-search-heading { font-size:11px; } }
 
-    </style>
+    
+        /* EXTRA NEON LEADERBOARD TOOLS */
+        .leaderboard-tools{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:0 24px 22px}
+        .tool-field{display:flex;flex-direction:column;gap:6px;min-width:150px;color:#8ca3b8;font-size:10px;font-weight:900;letter-spacing:1.2px}
+        .tool-field select{min-height:42px;background:#07121b;color:#e8fbff;border:1px solid #17485a;border-radius:10px;padding:0 12px;font:600 13px Inter,sans-serif;outline:none}
+        .tool-field select:focus{border-color:#00e5ff;box-shadow:0 0 12px #00e5ff55}
+        .tool-button{min-height:42px;border:1px solid #00d9ff;background:#06212b;color:#baf7ff;border-radius:10px;padding:0 16px;font-weight:800;cursor:pointer;box-shadow:0 0 12px #00d9ff22;transition:.2s}
+        .tool-button:hover{background:#073544;box-shadow:0 0 18px #00d9ff66;transform:translateY(-1px)}
+        .updated-status{font-size:11px;color:#6c91a5;padding-bottom:13px}
+        @media(max-width:600px){.leaderboard-tools{padding:0 14px 18px;gap:9px}.tool-field{flex:1;min-width:130px}.tool-button{flex:1}.updated-status{width:100%;padding-bottom:0}}
+
+</style>
 </head>
 <body>
 
@@ -323,6 +334,18 @@
             <input type="text" id="searchBar" placeholder="Search player...">
         </div>
     </div>
+
+
+    <section class="leaderboard-tools" aria-label="Leaderboard controls">
+        <label class="tool-field"><span>REGION</span>
+            <select id="regionFilter" aria-label="Filter by region"><option value="all">All regions</option></select>
+        </label>
+        <label class="tool-field"><span>SORT BY</span>
+            <select id="sortPlayers" aria-label="Sort players"><option value="rank">Leaderboard rank</option><option value="points">Most points</option><option value="name">Username A–Z</option></label>
+        </label>
+        <button id="refreshPlayers" class="tool-button" type="button"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        <span id="updatedStatus" class="updated-status" role="status">Waiting for player data…</span>
+    </section>
 
     <div class="gamemode-tabs">
         <button onclick="changeMode('overall', this)" class="tab-btn active"><i class="fa-solid fa-trophy" style="color:var(--accent);"></i> OVERALL</button>
@@ -472,7 +495,10 @@
                 });
 
                 allPlayers = processedData;
+                populateRegionFilter();
                 renderCurrentView();
+                const updated = document.getElementById('updatedStatus');
+                if (updated) updated.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
             } catch (err) {
                 showError("Network Error: " + err.message);
@@ -491,15 +517,38 @@
         }
 
         function renderCurrentView() {
+            const searchTerm = String(document.getElementById('searchBar')?.value || document.getElementById('modeSearchBar')?.value || '').trim().toLowerCase();
+            const region = document.getElementById('regionFilter')?.value || 'all';
+            const sort = document.getElementById('sortPlayers')?.value || 'rank';
+            let visiblePlayers = allPlayers.filter(player => {
+                const matchesName = String(player.username || '').toLowerCase().includes(searchTerm);
+                const matchesRegion = region === 'all' || String(player.region || 'N/A').toUpperCase() === region;
+                return matchesName && matchesRegion;
+            });
+            if (sort === 'points') visiblePlayers.sort((a,b) => b.totalPoints - a.totalPoints);
+            else if (sort === 'name') visiblePlayers.sort((a,b) => String(a.username || '').localeCompare(String(b.username || '')));
+            else visiblePlayers.sort((a,b) => a.actualRank - b.actualRank);
+
             if (currentMode === 'overall') {
                 document.getElementById('gridView').style.display = 'none';
                 document.getElementById('listView').style.display = 'block';
-                renderListView(allPlayers);
+                renderListView(visiblePlayers);
             } else {
                 document.getElementById('listView').style.display = 'none';
                 document.getElementById('gridView').style.display = 'block';
-                renderGridView(allPlayers, currentMode);
+                renderGridView(visiblePlayers, currentMode);
             }
+        }
+
+        function populateRegionFilter() {
+            const select = document.getElementById('regionFilter');
+            if (!select) return;
+            const previous = select.value;
+            const regions = [...new Set(allPlayers.map(player => String(player.region || 'N/A').trim().toUpperCase()))]
+                .filter(Boolean).sort();
+            select.innerHTML = '<option value="all">All regions</option>' +
+                regions.map(region => '<option value="' + escapeHTML(region) + '">' + escapeHTML(region) + '</option>').join('');
+            if (regions.includes(previous)) select.value = previous;
         }
 
         function renderListView(players) {
@@ -683,19 +732,23 @@
         });
         document.getElementById('searchBar').setAttribute('aria-label', 'Search players by Minecraft username');
         const modeSearchBar = document.getElementById('modeSearchBar');
-        function filterPlayers(term) {
-            const cleanTerm = String(term || '').trim().toLowerCase();
-            const filtered = allPlayers.filter(p => String(p.username || '').toLowerCase().includes(cleanTerm));
-            if (currentMode === 'overall') renderListView(filtered);
-            else renderGridView(filtered, currentMode);
+        function syncSearch(source, target) {
+            target.value = source.value;
+            renderCurrentView();
         }
-        document.getElementById('searchBar').addEventListener('input', (e) => {
-            modeSearchBar.value = e.target.value;
-            filterPlayers(e.target.value);
-        });
-        modeSearchBar.addEventListener('input', (e) => {
-            document.getElementById('searchBar').value = e.target.value;
-            filterPlayers(e.target.value);
+        document.getElementById('searchBar').addEventListener('input', () => syncSearch(document.getElementById('searchBar'), modeSearchBar));
+        modeSearchBar.addEventListener('input', () => syncSearch(modeSearchBar, document.getElementById('searchBar')));
+        document.getElementById('regionFilter').addEventListener('change', renderCurrentView);
+        document.getElementById('sortPlayers').addEventListener('change', renderCurrentView);
+        document.getElementById('refreshPlayers').addEventListener('click', async () => {
+            const button = document.getElementById('refreshPlayers');
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> Refreshing…';
+            try { await fetchData(); }
+            finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh';
+            }
         });
     </script>
 </body>

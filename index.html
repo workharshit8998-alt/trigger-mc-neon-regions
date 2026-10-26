@@ -258,6 +258,47 @@
             .player-row { box-shadow: 0 5px 16px rgba(0,0,0,.16); }
             .tier-pill { border-color: rgba(255,255,255,.07); }
         }
+
+        /* NEON CYBERPUNK THEME */
+        :root { --bg-main:#050711; --bg-card:rgba(10,16,32,.94); --bg-hover:rgba(13,30,52,.98); --border-color:rgba(0,229,255,.28); --accent:#00f5ff; --accent-glow:rgba(0,245,255,.28); --text-main:#e7faff; --text-muted:#8aa6bd; --neon-pink:#ff3df2; --neon-lime:#b7ff3c; }
+        body { background:radial-gradient(ellipse at 10% 0%,rgba(0,245,255,.12),transparent 38%),radial-gradient(ellipse at 90% 12%,rgba(255,61,242,.10),transparent 34%),linear-gradient(180deg,#050711 0%,#070b18 55%,#04060d 100%); background-attachment:fixed; }
+        .top-nav { background:rgba(4,7,18,.88); border-bottom:1px solid rgba(0,245,255,.35); box-shadow:0 5px 28px rgba(0,245,255,.07); }
+        .logo-text span { color:var(--accent); text-shadow:0 0 10px var(--accent),0 0 24px rgba(0,245,255,.55); }
+        .header-titles h1 { text-shadow:0 0 18px rgba(0,245,255,.24); }
+        .header-titles h1::after { background:linear-gradient(90deg,var(--accent),var(--neon-pink),transparent); box-shadow:0 0 12px rgba(0,245,255,.5); }
+        .discord-btn { background:linear-gradient(110deg,#00d9ff,#8a4dff 55%,#ff3df2); color:#050711; box-shadow:0 0 18px rgba(0,229,255,.25); }
+        .discord-btn:hover { box-shadow:0 0 26px rgba(0,229,255,.48),0 0 34px rgba(255,61,242,.2); }
+        .search-box input { background:rgba(6,12,27,.95); border:1px solid rgba(0,245,255,.38); box-shadow:inset 0 0 14px rgba(0,245,255,.035); }
+        .search-box input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,245,255,.12),0 0 22px rgba(0,245,255,.12); }
+        .search-box i { color:var(--accent); }
+        .gamemode-tabs { border-bottom-color:rgba(0,245,255,.24); }
+        .tab-btn { border-radius:8px 8px 0 0; }
+        .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); background:linear-gradient(180deg,rgba(0,245,255,.13),rgba(255,61,242,.035)); text-shadow:0 0 12px rgba(0,245,255,.45); box-shadow:inset 0 -2px 12px rgba(0,245,255,.08); }
+        .tab-btn.active img { filter:drop-shadow(0 0 6px var(--accent)); }
+        .player-row,.tier-column,.grid-player,.profile-modal { border-color:rgba(0,229,255,.2); box-shadow:0 8px 26px rgba(0,0,0,.24),0 0 12px rgba(0,229,255,.035); }
+        .player-row:hover,.grid-player:hover { border-color:var(--accent); box-shadow:0 0 0 1px rgba(0,245,255,.18),0 0 24px rgba(0,245,255,.11),0 12px 28px rgba(0,0,0,.35); }
+        .player-row.row-1 { border-color:rgba(183,255,60,.65); box-shadow:inset 3px 0 0 var(--neon-lime),0 0 20px rgba(183,255,60,.08); }
+        .player-row.row-2 { border-color:rgba(0,245,255,.38); }
+        .player-row.row-3 { border-color:rgba(255,61,242,.35); }
+        .rank-1 { background:linear-gradient(135deg,#d7ff57,#77ffb5); color:#04110a; box-shadow:0 0 18px rgba(183,255,60,.45); animation:neon-pulse 2.8s ease-in-out infinite; }
+        .rank-2 { background:linear-gradient(135deg,#9ff8ff,#7f9dff); color:#06101c; box-shadow:0 0 14px rgba(0,245,255,.25); }
+        .rank-3 { background:linear-gradient(135deg,#ff9af5,#b66dff); color:#19051b; box-shadow:0 0 14px rgba(255,61,242,.25); }
+        .rank-default { color:#9cb5ca; background:rgba(0,245,255,.06); border:1px solid rgba(0,245,255,.12); }
+        .points-cell { color:var(--neon-lime); text-shadow:0 0 12px rgba(183,255,60,.35); animation:none; }
+        .player-avatar,.pm-avatar { border-color:rgba(0,245,255,.55); box-shadow:0 0 14px rgba(0,245,255,.09); }
+        .tier-pill { background:rgba(3,8,20,.9); border-color:rgba(0,229,255,.16); }
+        .tier-header { background:linear-gradient(90deg,rgba(0,245,255,.07),rgba(255,61,242,.035)); }
+        .pm-badge { color:var(--accent); background:rgba(0,245,255,.08); border-color:rgba(0,245,255,.35); box-shadow:0 0 16px rgba(0,245,255,.09); }
+        .pm-pos-rank { color:var(--neon-lime); text-shadow:0 0 15px rgba(183,255,60,.35); }
+        .pm-tier-box { border-color:rgba(0,229,255,.18); }
+        .empty-state { border-color:rgba(0,245,255,.28); background:rgba(7,13,29,.85); }
+        .compare-search-section { padding:0 24px 22px; }
+        .compare-search-heading { color:var(--accent); font-size:12px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase; margin-bottom:10px; text-shadow:0 0 12px rgba(0,245,255,.25); }
+        .compare-search-box { width:min(100%,460px); }
+        .compare-search-box input { padding-right:42px; }
+        @keyframes neon-pulse { 0%,100% { box-shadow:0 0 10px rgba(183,255,60,.28); } 50% { box-shadow:0 0 22px rgba(183,255,60,.52),0 0 32px rgba(0,245,255,.12); } }
+        @media(max-width:768px) { .compare-search-section { padding:0 12px 18px; } .compare-search-heading { font-size:11px; } }
+
     </style>
 </head>
 <body>
@@ -311,6 +352,13 @@
 
     <!-- GRID VIEW (GAMEMODES) -->
     <main id="gridView">
+        <section class="compare-search-section" aria-label="Compare players">
+            <div class="compare-search-heading"><i class="fa-solid fa-users"></i> Compare Players</div>
+            <div class="search-box compare-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="modeSearchBar" placeholder="Search a player in this tier list..." aria-label="Search players in the selected game mode">
+            </div>
+        </section>
         <div class="grid-layout" id="gridLayout"></div>
     </main>
 
@@ -634,11 +682,20 @@
             }
         });
         document.getElementById('searchBar').setAttribute('aria-label', 'Search players by Minecraft username');
-        document.getElementById('searchBar').addEventListener('input', (e) => {
-            const term = e.target.value.trim().toLowerCase();
-            const filtered = allPlayers.filter(p => String(p.username || '').toLowerCase().includes(term));
+        const modeSearchBar = document.getElementById('modeSearchBar');
+        function filterPlayers(term) {
+            const cleanTerm = String(term || '').trim().toLowerCase();
+            const filtered = allPlayers.filter(p => String(p.username || '').toLowerCase().includes(cleanTerm));
             if (currentMode === 'overall') renderListView(filtered);
             else renderGridView(filtered, currentMode);
+        }
+        document.getElementById('searchBar').addEventListener('input', (e) => {
+            modeSearchBar.value = e.target.value;
+            filterPlayers(e.target.value);
+        });
+        modeSearchBar.addEventListener('input', (e) => {
+            document.getElementById('searchBar').value = e.target.value;
+            filterPlayers(e.target.value);
         });
     </script>
 </body>

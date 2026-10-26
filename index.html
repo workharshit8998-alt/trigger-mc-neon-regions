@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explore Trigger MC Minecraft PvP rankings, player tiers, and competitive game-mode leaderboards.">
+    <meta name="theme-color" content="#090909">
+    <title>Trigger MC - Leaderboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --bg-main: #090909;
+            --bg-card: #111111;
+            --bg-hover: #191714;
+            --border-color: #30291b;
+            --accent: #e6b85c;
+            --accent-glow: rgba(230, 184, 92, 0.22);
+            --text-main: #e2e8f0;
+            --text-muted: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        /* FLASHY ANIMATIONS */
+        @keyframes glow-gold {
+            0% { box-shadow: 0 0 10px #ffd700, inset 0 0 5px #ffd700; }
+            50% { box-shadow: 0 0 25px #ffd700, 0 0 35px #ffaa00, inset 0 0 10px #ffd700; }
+            100% { box-shadow: 0 0 10px #ffd700, inset 0 0 5px #ffd700; }
+        }
+        @keyframes pulse-points {
+            0% { text-shadow: 0 0 5px var(--accent-glow); }
+            50% { text-shadow: 0 0 15px var(--accent), 0 0 25px var(--accent); }
+            100% { text-shadow: 0 0 5px var(--accent-glow); }
+        }
+
+        /* TOP NAVBAR */
+        .top-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: rgba(6, 9, 16, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 50; }
+        .logo-text { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 900; color: white; letter-spacing: 1px; text-transform: uppercase; }
+        .logo-text span { color: var(--accent); text-shadow: 0 0 15px var(--accent-glow); }
+        
+        .discord-btn { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+        .discord-btn:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+
+        /* HEADER SECTION */
+        .header-section { padding: 30px 24px 20px 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; }
+        .header-titles h1 { font-size: 28px; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: -0.5px; margin-bottom: 6px; text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+        .header-titles p { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        
+        .search-box { position: relative; width: 300px; max-width: 100%; }
+        .search-box i { position: absolute; left: 16px; top: 14px; color: var(--text-muted); font-size: 14px; }
+        .search-box input { width: 100%; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px 12px 42px; font-size: 14px; color: white; outline: none; transition: 0.3s; }
+        .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), 0 0 15px var(--accent-glow); }
+
+        /* TABS */
+        .gamemode-tabs { display: flex; overflow-x: auto; padding: 0 24px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; gap: 8px; margin-bottom: 24px; }
+        .gamemode-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { display: flex; align-items: center; gap: 8px; padding: 14px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.3s; }
+        .tab-btn img { width: 16px; height: 16px; object-fit: contain; opacity: 0.5; transition: 0.3s; }
+        .tab-btn:hover { color: white; background: rgba(255,255,255,0.02); border-radius: 8px 8px 0 0; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0, 210, 255, 0.05); text-shadow: 0 0 10px var(--accent-glow); }
+        .tab-btn.active img { opacity: 1; filter: drop-shadow(0 0 5px var(--accent)); }
+
+        /* TABLE LIST VIEW (OVERALL) */
+        .list-wrapper { padding: 0 24px 40px 24px; overflow-x: auto; }
+        .list-header { display: flex; align-items: center; padding: 0 20px 12px 20px; font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; min-width: 900px; }
+        
+        .col-rank { width: 70px; }
+        .col-player { flex: 1; }
+        .col-region { width: 100px; text-align: center; }
+        .col-points { width: 80px; text-align: center; }
+        .col-tiers { width: 260px; display: flex; justify-content: flex-end; }
+
+        #playerList { display: flex; flex-direction: column; gap: 10px; min-width: 900px; }
+
+        .player-row { display: flex; align-items: center; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 20px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        .player-row:hover { background-color: var(--bg-hover); border-color: #334155; transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.5), 0 0 15px rgba(0, 210, 255, 0.1); z-index: 2; }
+
+        /* FLASHY TOP 3 ROWS */
+        .player-row.row-1 { border-color: rgba(255, 215, 0, 0.4); background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, var(--bg-card) 50%); }
+        .player-row.row-2 { border-color: rgba(229, 229, 229, 0.3); background: linear-gradient(90deg, rgba(229, 229, 229, 0.05) 0%, var(--bg-card) 50%); }
+        .player-row.row-3 { border-color: rgba(205, 127, 50, 0.3); background: linear-gradient(90deg, rgba(205, 127, 50, 0.05) 0%, var(--bg-card) 50%); }
+
+        .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 32px; border-radius: 8px; font-size: 15px; font-weight: 900; color: #000; transition: 0.3s; }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffaa00); animation: glow-gold 2.5s infinite; }
+        .rank-2 { background: linear-gradient(135deg, #e5e5e5, #b3b3b3); box-shadow: 0 0 15px rgba(229, 229, 229, 0.3); }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #a0522d); box-shadow: 0 0 15px rgba(205, 127, 50, 0.3); }
+        .rank-default { background: var(--border-color); color: var(--text-muted); }
+
+        .player-cell { display: flex; align-items: center; gap: 16px; }
+        .player-avatar { width: 44px; height: 44px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-color); }
+        .player-name { font-size: 16px; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .player-title { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-top: 2px; display: flex; align-items: center; gap: 6px;}
+        .badge-overall { background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 800; border: 1px solid var(--border-color); }
+
+        .region-cell { font-size: 13px; font-weight: 700; color: #94a3b8; text-align: center; }
+        .points-cell { font-size: 18px; font-weight: 900; color: var(--accent); text-align: center; animation: pulse-points 3s infinite; }
+
+        .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
+        .tier-pill { display: flex; align-items: center; justify-content: flex-start; gap: 6px; background: var(--bg-main); border: 1px solid var(--border-color); padding: 5px 8px; border-radius: 6px; transition: 0.2s; }
+        .player-row:hover .tier-pill { border-color: #334155; }
+        .tier-pill img { width: 14px; height: 14px; object-fit: contain; }
+        .tier-text { font-size: 11px; font-weight: 800; }
+
+        /* NEON TIER COLORS */
+        .c-ht1, .c-lt1 { color: #f87171; text-shadow: 0 0 8px rgba(248, 113, 113, 0.6); }
+        .c-ht2, .c-lt2 { color: #c084fc; text-shadow: 0 0 8px rgba(192, 132, 252, 0.6); }
+        .c-ht3, .c-lt3 { color: #60a5fa; text-shadow: 0 0 8px rgba(96, 165, 250, 0.6); }
+        .c-ht4, .c-lt4 { color: #4ade80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.6); }
+        .c-ht5, .c-lt5 { color: #facc15; text-shadow: 0 0 8px rgba(250, 204, 21, 0.6); }
+        .c-na { color: #475569; }
+
+        /* GRID VIEW (GAMEMODES) */
+        #gridView { display: none; padding: 0 24px 40px 24px; }
+        .grid-layout { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; }
+        .tier-column { min-width: 320px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .tier-header { padding: 16px 20px; font-size: 16px; font-weight: 900; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); text-shadow: 0 0 10px currentColor;}
+        .tier-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .grid-player { display: flex; align-items: center; gap: 12px; background: var(--bg-main); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: 0.2s;}
+        .grid-player:hover { border-color: #334155; transform: translateX(4px); background: var(--bg-hover); box-shadow: 0 0 10px rgba(0, 210, 255, 0.1); }
+
+        /* PROFILE MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .profile-modal { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 460px; padding: 32px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 30px rgba(0, 210, 255, 0.1); }
+        .close-modal { position: absolute; top: 20px; right: 20px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .close-modal:hover { background: #334155; color: white; transform: rotate(90deg); }
+        
+        .pm-header { text-align: center; margin-bottom: 24px; }
+        .pm-avatar { width: 90px; height: 90px; border-radius: 16px; border: 2px solid var(--accent); margin-bottom: 16px; background: var(--bg-main); box-shadow: 0 0 25px var(--accent-glow); object-fit: contain; }
+        .pm-name { font-size: 26px; font-weight: 900; color: white; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .pm-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; color: var(--accent); margin-top: 10px; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
+        
+        .pm-section-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 10px; }
+        .pm-pos-box { background: var(--bg-main); border: 1px solid var(--border-color); padding: 16px; border-radius: 10px; display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .pm-pos-rank { font-size: 24px; font-weight: 900; color: var(--accent); text-shadow: 0 0 15px var(--accent-glow); }
+        .pm-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .pm-tier-box { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--bg-main); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; }
+
+        /* ERROR BOX */
+        .error-box { background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; padding: 30px; border-radius: 12px; color: #ef4444; text-align: center; font-family: monospace; margin-top: 20px; min-width: 300px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);}
+        .error-box h2 { font-size: 24px; margin-bottom: 10px; }
+        .error-box p { font-size: 14px; font-weight: bold; margin-bottom: 10px; line-height: 1.5;}
+        
+        /* ACCESSIBILITY + RESPONSIVE POLISH */
+        button, input, a { font: inherit; }
+        button:focus-visible, a:focus-visible, input:focus-visible, .player-row:focus-visible, .grid-player:focus-visible {
+            outline: 2px solid var(--accent); outline-offset: 3px;
+        }
+        .empty-state { text-align: center; padding: 42px 20px; color: var(--text-muted); background: var(--bg-card); border: 1px dashed var(--border-color); border-radius: 12px; }
+        .discord-btn { white-space: nowrap; }
+        .tab-btn { min-height: 48px; }
+        .player-row:focus-visible { transform: none; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+        @media (max-width: 768px) {
+            .top-nav { padding: 12px 14px; gap: 10px; }
+            .logo-text { font-size: 17px; gap: 8px; }
+            .logo-text img { height: 28px !important; }
+            .discord-btn { padding: 9px 11px; font-size: 12px; gap: 6px; }
+            .header-section { padding: 22px 14px 16px; align-items: stretch; gap: 16px; }
+            .header-titles h1 { font-size: clamp(20px, 5vw, 26px); line-height: 1.2; }
+            .header-titles p { font-size: 12px; line-height: 1.5; }
+            .search-box { width: 100%; }
+            .gamemode-tabs { padding: 0 12px; gap: 3px; margin-bottom: 16px; }
+            .tab-btn { padding: 12px 13px; font-size: 11px; }
+            .list-wrapper { padding: 0 12px 28px; overflow: visible; }
+            .list-header { display: none; }
+            #playerList { min-width: 0; gap: 9px; }
+            .player-row { min-width: 0; padding: 12px; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; border-radius: 10px; }
+            .col-rank { width: auto; grid-column: 1; grid-row: 1; }
+            .rank-badge { width: 38px; height: 34px; font-size: 13px; }
+            .col-player { grid-column: 2; grid-row: 1; min-width: 0; }
+            .player-cell { gap: 10px; min-width: 0; }
+            .player-avatar { width: 40px; height: 40px; flex-shrink: 0; }
+            .player-name { font-size: 14px; overflow-wrap: anywhere; }
+            .player-title { font-size: 11px; flex-wrap: wrap; }
+            .col-points { grid-column: 3; grid-row: 1; width: auto; align-self: center; font-size: 16px; text-align: right; }
+            .col-region { display: none; }
+            .col-tiers { grid-column: 1 / -1; grid-row: 2; width: 100%; display: block; }
+            .tier-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+            .tier-pill { justify-content: center; padding: 6px 4px; gap: 4px; min-width: 0; }
+            .tier-pill img { width: 12px; height: 12px; }
+            .tier-text { font-size: 10px; }
+            #gridView { padding: 0 12px 28px; }
+            .grid-layout { gap: 12px; }
+            .tier-column { min-width: min(78vw, 300px); }
+            .profile-modal { padding: 24px 18px; max-height: 90dvh; overflow-y: auto; }
+            .pm-name { font-size: 22px; overflow-wrap: anywhere; }
+            .pm-tiers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .error-box { min-width: 0; padding: 22px 16px; }
+        }
+        @media (max-width: 360px) {
+            .logo-text { font-size: 15px; }
+            .discord-btn { padding: 8px; font-size: 11px; }
+            .tier-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .player-row { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 7px; }
+            .rank-badge { width: 34px; }
+            .player-avatar { width: 34px; height: 34px; }
+        }
+
+        /* TRIGGER MC — premium black & gold refinement */
+        body {
+            background-image: radial-gradient(ellipse at 50% -20%, rgba(230,184,92,.09), transparent 55%),
+                              linear-gradient(180deg, #090909 0%, #08090c 100%);
+            background-attachment: fixed;
+        }
+        .top-nav {
+            background: rgba(9,9,9,.88);
+            border-bottom-color: rgba(230,184,92,.18);
+        }
+        .logo-text span { color: var(--accent); text-shadow: 0 0 14px rgba(230,184,92,.2); }
+        .header-titles h1 { letter-spacing: .015em; }
+        .header-titles h1::after {
+            content: ""; display: block; width: 54px; height: 3px; margin-top: 12px;
+            border-radius: 99px; background: linear-gradient(90deg, var(--accent), transparent);
+        }
+        .discord-btn {
+            background: linear-gradient(135deg, #e6b85c, #a87825);
+            color: #171107; box-shadow: 0 5px 18px rgba(230,184,92,.12);
+        }
+        .discord-btn:hover { box-shadow: 0 8px 24px rgba(230,184,92,.22); }
+        .search-box input { background: rgba(17,17,17,.92); border-color: #393020; }
+        .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230,184,92,.12); }
+        .gamemode-tabs { border-bottom-color: rgba(230,184,92,.16); }
+        .tab-btn.active { color: var(--accent); background: rgba(230,184,92,.07); text-shadow: none; }
+        .tab-btn.active img { filter: sepia(1) saturate(1.5); }
+        .player-row { border-color: rgba(255,255,255,.055); box-shadow: 0 8px 22px rgba(0,0,0,.14); }
+        .player-row:hover { border-color: rgba(230,184,92,.34); box-shadow: 0 12px 28px rgba(0,0,0,.28), 0 0 0 1px rgba(230,184,92,.04); }
+        .player-row.row-1 { border-color: rgba(230,184,92,.42); }
+        .points-cell { animation: none; color: var(--accent); }
+        .rank-1 { animation: none; box-shadow: 0 0 16px rgba(230,184,92,.17); }
+        .rank-default { color: #a7a7a7; }
+        .player-avatar, .pm-avatar { border-color: rgba(230,184,92,.28); }
+        .tier-column { border-color: rgba(230,184,92,.12); }
+        .tier-header { text-shadow: none; }
+        .grid-player:hover { border-color: rgba(230,184,92,.3); box-shadow: 0 0 14px rgba(230,184,92,.06); }
+        .profile-modal { border-color: rgba(230,184,92,.22); box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 30px rgba(230,184,92,.05); }
+        .pm-avatar { box-shadow: 0 0 22px rgba(230,184,92,.12); }
+        .pm-badge { color: var(--accent); background: rgba(230,184,92,.08); border-color: rgba(230,184,92,.22); box-shadow: none; }
+        .empty-state { border-color: rgba(230,184,92,.2); }
+        button, a, input, .player-row, .grid-player { -webkit-tap-highlight-color: transparent; }
+        @media (max-width: 768px) {
+            .header-section { gap: 14px; }
+            .top-nav { backdrop-filter: blur(16px); }
+            .player-row { box-shadow: 0 5px 16px rgba(0,0,0,.16); }
+            .tier-pill { border-color: rgba(255,255,255,.07); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="logo-text">
+            <img src="logo.png" alt="Trigger MC" style="height: 32px; object-fit: contain;" onerror="this.style.display='none'">
+            TRIGGER<span>MC</span>
+        </div>
+        <a href="https://discord.gg/rsGh5JfNAW" target="_blank" rel="noopener noreferrer" class="discord-btn">
+            <i class="fa-brands fa-discord text-lg"></i> Join Discord
+        </a>
+    </nav>
+
+    <div class="header-section">
+        <div class="header-titles">
+            <h1 id="pageTitle">LIVE RANKINGS LEADERBOARD</h1>
+            <p id="pageSubtitle">Sort ranks, filter kits, and open player tiers fast.</p>
+        </div>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchBar" placeholder="Search player...">
+        </div>
+    </div>
+
+    <div class="gamemode-tabs">
+        <button onclick="changeMode('overall', this)" class="tab-btn active"><i class="fa-solid fa-trophy" style="color:var(--accent);"></i> OVERALL</button>
+        <button onclick="changeMode('sword', this)" class="tab-btn"><img src="sword.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/khanda.svg'"> SWORD</button>
+        <button onclick="changeMode('mace', this)" class="tab-btn"><img src="mace.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/burst.svg'"> MACE</button>
+        <button onclick="changeMode('axe', this)" class="tab-btn"><img src="axe.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/hammer.svg'"> AXE</button>
+        <button onclick="changeMode('uhc', this)" class="tab-btn"><img src="uhc.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/heart.svg'"> UHC</button>
+        <button onclick="changeMode('pot', this)" class="tab-btn"><img src="pot.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/flask.svg'"> POT</button>
+        <button onclick="changeMode('smp', this)" class="tab-btn"><img src="smp.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/leaf.svg'"> SMP</button>
+        <button onclick="changeMode('nethpot', this)" class="tab-btn"><img src="nethpot.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/fire.svg'"> NETHPOT</button>
+        <button onclick="changeMode('vanilla', this)" class="tab-btn"><img src="vanilla.svg" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/cube.svg'"> VANILLA</button>
+    </div>
+
+    <!-- LIST VIEW (OVERALL) -->
+    <main class="list-wrapper" id="listView">
+        <div class="list-header">
+            <div class="col-rank">RANK</div>
+            <div class="col-player">PLAYER</div>
+            <div class="col-region">REGION</div>
+            <div class="col-points">POINTS</div>
+            <div class="col-tiers">TIER RESULTS</div>
+        </div>
+        <div id="playerList">
+            <div style="text-align:center; padding: 40px; color:var(--accent);"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i></div>
+        </div>
+    </main>
+
+    <!-- GRID VIEW (GAMEMODES) -->
+    <main id="gridView">
+        <div class="grid-layout" id="gridLayout"></div>
+    </main>
+
+    <!-- PROFILE MODAL -->
+    <div class="modal-overlay" id="profileModal" onclick="closeModal(event)">
+        <div class="profile-modal" onclick="event.stopPropagation()">
+            <button class="close-modal" onclick="closeModal(event)"><i class="fa-solid fa-xmark"></i></button>
+            <div class="pm-header">
+                <img src="" id="pmAvatar" class="pm-avatar">
+                <div class="pm-name" id="pmName">Player</div>
+                <div class="pm-badge" id="pmBadge"><i class="fa-solid fa-medal"></i> Combat Cadet</div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;" id="pmRegion">Region</div>
+            </div>
+            <div class="pm-section-title">POSITION</div>
+            <div class="pm-pos-box">
+                <div class="pm-pos-rank" id="pmRank">#1</div>
+                <div style="font-size: 15px; font-weight: 800; color: white;"><i class="fa-solid fa-trophy" style="color:var(--accent);"></i> OVERALL <span style="color:var(--text-muted); font-weight:500; font-size: 13px; margin-left: 4px;" id="pmPoints">(0 points)</span></div>
+            </div>
+            <div class="pm-section-title">TIERS</div>
+            <div class="pm-tiers" id="pmTiers"></div>
+        </div>
+    </div>
+
+    <script>
+        // EXACT POINTS VALUES
+        const TIER_POINTS = {
+            "HT1": 60, "LT1": 45, "HT2": 30, "LT2": 20, "HT3": 10, 
+            "LT3": 6, "HT4": 4, "LT4": 3, "HT5": 2, "LT5": 1, 
+            "NA": 0, "": 0
+        };
+
+        let allPlayers = [];
+        let currentMode = 'overall';
+
+        const modeImages = {
+            'vanilla': 'vanilla.svg', 'uhc': 'uhc.svg', 'pot': 'pot.svg', 
+            'nethpot': 'nethpot.svg', 'sword': 'sword.svg', 'axe': 'axe.svg', 
+            'smp': 'smp.svg', 'mace': 'mace.svg'
+        };
+
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"\']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[ch]));
+        }
+
+        function showError(msg) {
+            document.getElementById('playerList').innerHTML = `
+                <div class="error-box">
+                    <h2><i class="fa-solid fa-triangle-exclamation"></i> DATABASE ERROR</h2>
+                    <p>Reason: ${escapeHTML(msg)}</p>
+                    <hr style="border-color: rgba(239, 68, 68, 0.3); margin: 15px 0;">
+                    <p style="font-size: 12px; color: #fca5a5; font-weight: normal;">
+                        <b>Why this happens:</b><br>
+                        1. If testing in Acode, it blocks database connections.<br>
+                        2. If on Netlify, redeploy the updated site files.<br>
+                        3. Check that the players table has an appropriate SELECT policy for public leaderboard data; never disable RLS or expose a service-role key.
+                    </p>
+                </div>`;
+        }
+
+        // BULLETPROOF INITIALIZATION
+        window.addEventListener('load', function() {
+            let attempts = 0;
+            const initInterval = setInterval(async () => {
+                attempts++;
+                if (window.supabase) {
+                    clearInterval(initInterval);
+                    await fetchData();
+                } else if (attempts > 20) {
+                    clearInterval(initInterval);
+                    showError("Supabase library failed to load. Check internet connection.");
+                }
+            }, 200);
+        });
+
+        async function fetchData() {
+            try {
+                const config = window.APP_CONFIG || {};
+                if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                    return showError('Missing Supabase configuration in config.js.');
+                }
+                const supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+                const { data, error } = await supabase.from('players').select('*');
+                
+                if (error) return showError("Supabase Error: " + error.message);
+                if (!data || data.length === 0) return showError("Connected, but 'players' table is empty.");
+
+                let processedData = data.map(player => {
+                    let totalPoints = 0;
+                    let totalTiers = 0;
+
+                    Object.keys(modeImages).forEach(mode => {
+                        const tier = player[mode] ? player[mode].toUpperCase() : 'NA';
+                        const pts = TIER_POINTS[tier] || 0;
+                        totalPoints += pts;
+                        if (pts > 0) totalTiers++;
+                    });
+
+                    let title = "Combat Cadet";
+                    if (totalPoints >= 300) title = "Combat Grandmaster";
+                    else if (totalPoints >= 150) title = "Combat Master";
+                    else if (totalPoints >= 50) title = "Combat Ace";
+
+                    return { ...player, totalPoints, totalTiers, title };
+                });
+
+                processedData.sort((a, b) => b.totalPoints - a.totalPoints);
+
+                processedData.forEach((player, index) => {
+                    player.actualRank = index + 1;
+                });
+
+                allPlayers = processedData;
+                renderCurrentView();
+
+            } catch (err) {
+                showError("Network Error: " + err.message);
+            }
+        }
+
+        function getTierColorClass(tier) {
+            if(!tier || tier === "NA") return 'c-na';
+            const t = tier.toUpperCase();
+            if(t.includes('1')) return 'c-ht1';
+            if(t.includes('2')) return 'c-ht2';
+            if(t.includes('3')) return 'c-ht3';
+            if(t.includes('4')) return 'c-ht4';
+            if(t.includes('5')) return 'c-ht5';
+            return 'c-na';
+        }
+
+        function renderCurrentView() {
+            if (currentMode === 'overall') {
+                document.getElementById('gridView').style.display = 'none';
+                document.getElementById('listView').style.display = 'block';
+                renderListView(allPlayers);
+            } else {
+                document.getElementById('listView').style.display = 'none';
+                document.getElementById('gridView').style.display = 'block';
+                renderGridView(allPlayers, currentMode);
+            }
+        }
+
+        function renderListView(players) {
+            const list = document.getElementById('playerList');
+            list.innerHTML = '';
+            
+            if (players.length === 0) {
+                list.innerHTML = `<div class="empty-state">No players found matching your search.</div>`;
+                return;
+            }
+
+            players.forEach((player) => {
+                let rankClass = "rank-default";
+                let rowClass = "player-row";
+                if (player.actualRank === 1) { rankClass = "rank-1"; rowClass += " row-1"; } 
+                else if (player.actualRank === 2) { rankClass = "rank-2"; rowClass += " row-2"; } 
+                else if (player.actualRank === 3) { rankClass = "rank-3"; rowClass += " row-3"; }
+
+                const tiersHtml = Object.keys(modeImages).map(mode => {
+                    const tierVal = player[mode] ? String(player[mode]).toUpperCase() : 'NA';
+                    const colorClass = getTierColorClass(tierVal);
+                    return `
+                    <div class="tier-pill">
+                        <img src="${modeImages[mode]}" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/question.svg'">
+                        <span class="tier-text ${colorClass}">${escapeHTML(tierVal)}</span>
+                    </div>
+                    `;
+                }).join('');
+
+                const row = document.createElement('div');
+                row.className = rowClass;
+                row.onclick = () => openProfile(player);
+                row.tabIndex = 0;
+                row.setAttribute("role", "button");
+                row.setAttribute("aria-label", `Open ${String(player.username || "player")} profile`);
+                row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openProfile(player); } });
+                
+                row.innerHTML = `
+                    <div class="col-rank"><div class="rank-badge ${rankClass}">#${player.actualRank}</div></div>
+                    <div class="col-player">
+                        <div class="player-cell">
+                            <img src="https://mc-heads.net/avatar/${encodeURIComponent(String(player.username || "MHF_Steve"))}/64" class="player-avatar" onerror="this.src='https://mc-heads.net/avatar/MHF_Steve/64'">
+                            <div>
+                                <div class="player-name">${escapeHTML(player.username)}</div>
+                                <div class="player-title">${escapeHTML(player.title)} <span class="badge-overall">OVERALL</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-region region-cell">${escapeHTML(player.region || 'N/A')}</div>
+                    <div class="col-points points-cell">${player.totalPoints}</div>
+                    <div class="col-tiers">
+                        <div class="tier-grid">${tiersHtml}</div>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function renderGridView(players, mode) {
+            const layout = document.getElementById('gridLayout');
+            layout.innerHTML = '';
+            const tierWeights = { "HT1": 1, "LT1": 2, "HT2": 3, "LT2": 4, "HT3": 5, "LT3": 6, "HT4": 7, "LT4": 8, "HT5": 9, "LT5": 10 };
+            const activePlayers = players.filter(p => p[mode] && String(p[mode]).toUpperCase() !== "NA")
+                .sort((a, b) => (tierWeights[String(a[mode]).toUpperCase()] || 99) - (tierWeights[String(b[mode]).toUpperCase()] || 99));
+            const columns = [
+                { title: "Tier 1", color: "#f87171", tiers: ["HT1", "LT1"] },
+                { title: "Tier 2", color: "#c084fc", tiers: ["HT2", "LT2"] },
+                { title: "Tier 3", color: "#60a5fa", tiers: ["HT3", "LT3"] },
+                { title: "Tier 4", color: "#4ade80", tiers: ["HT4", "LT4"] },
+                { title: "Tier 5", color: "#facc15", tiers: ["HT5", "LT5"] }
+            ];
+            columns.forEach(col => {
+                const colPlayers = activePlayers.filter(p => col.tiers.includes(String(p[mode]).toUpperCase()));
+                const colDiv = document.createElement('div');
+                colDiv.className = 'tier-column';
+                const header = document.createElement('div');
+                header.className = 'tier-header';
+                header.style.borderBottomColor = col.color;
+                header.style.color = col.color;
+                header.innerHTML = '<i class="fa-solid fa-trophy" aria-hidden="true"></i>' + col.title;
+                const tierList = document.createElement('div');
+                tierList.className = 'tier-list';
+                if (!colPlayers.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-state';
+                    empty.textContent = 'No players in this tier';
+                    tierList.appendChild(empty);
+                } else {
+                    colPlayers.forEach(player => {
+                        const card = document.createElement('div');
+                        card.className = 'grid-player';
+                        card.tabIndex = 0;
+                        card.setAttribute('role', 'button');
+                        card.setAttribute('aria-label', `Open ${String(player.username || 'player')} profile`);
+                        const avatar = document.createElement('img');
+                        avatar.src = `https://mc-heads.net/avatar/${encodeURIComponent(String(player.username || 'MHF_Steve'))}/64`;
+                        avatar.alt = '';
+                        avatar.loading = 'lazy';
+                        avatar.style.cssText = 'width:36px;height:36px;border-radius:6px;';
+                        avatar.onerror = function() { this.onerror = null; this.src = 'https://mc-heads.net/avatar/MHF_Steve/64'; };
+                        const name = document.createElement('div');
+                        name.style.cssText = 'font-size:15px;font-weight:700;color:white;overflow-wrap:anywhere;';
+                        name.textContent = String(player.username || 'Unknown player');
+                        const tier = document.createElement('span');
+                        tier.className = 'tier-text ' + getTierColorClass(String(player[mode]).toUpperCase());
+                        tier.textContent = String(player[mode]).toUpperCase();
+                        card.append(avatar, name, tier);
+                        card.addEventListener('click', () => openProfile(player));
+                        card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProfile(player); } });
+                        tierList.appendChild(card);
+                    });
+                }
+                colDiv.append(header, tierList);
+                layout.appendChild(colDiv);
+            });
+        }
+
+        window.openProfile = function(player) {
+            document.getElementById('pmAvatar').src = `https://mc-heads.net/body/${encodeURIComponent(String(player.username || "MHF_Steve"))}/right`;
+            document.getElementById('pmAvatar').onerror = function() { this.onerror = null; this.src = `https://mc-heads.net/avatar/${encodeURIComponent(String(player.username || "MHF_Steve"))}/100`; };
+            document.getElementById('pmName').textContent = String(player.username || 'Unknown player');
+            
+            let regionName = player.region || "Unknown Region";
+            if(player.region === 'NA') regionName = "North America";
+            if(player.region === 'EU') regionName = "Europe";
+            if(player.region === 'AS/AU') regionName = "AS/AU";
+            document.getElementById('pmRegion').textContent = regionName;
+
+            document.getElementById('pmBadge').textContent = `🏅 ${String(player.title || 'Combat Cadet')}`;
+            document.getElementById('pmRank').innerText = `#${player.actualRank}`;
+            document.getElementById('pmPoints').innerText = `(${player.totalPoints} points)`;
+
+            const tiersContainer = document.getElementById('pmTiers');
+            tiersContainer.innerHTML = '';
+            
+            Object.keys(modeImages).forEach(mode => {
+                const tierVal = player[mode] ? String(player[mode]).toUpperCase() : '-';
+                const colorClass = getTierColorClass(tierVal);
+                
+                const tierBox = document.createElement('div');
+                tierBox.className = 'pm-tier-box';
+                tierBox.innerHTML = `
+                    <img src="${modeImages[mode]}" style="width:16px; height:16px;" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/question.svg'">
+                    <span class="tier-text ${colorClass}" style="font-size:12px;">${escapeHTML(tierVal === 'NA' ? '-' : tierVal)}</span>
+                `;
+                tiersContainer.appendChild(tierBox);
+            });
+
+            document.getElementById('profileModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            document.querySelector('.close-modal').focus();
+        }
+
+        window.closeModal = function(event) {
+            if (event) event.preventDefault();
+            document.getElementById('profileModal').classList.remove('active');
+            document.body.style.overflow = ''; 
+        }
+
+        window.changeMode = function(mode, btnElement) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            
+            if (mode === 'overall') {
+                document.getElementById('pageTitle').innerText = "LIVE RANKINGS LEADERBOARD";
+                document.getElementById('pageSubtitle').innerText = "Sort ranks, filter kits, and open player tiers fast.";
+            } else {
+                document.getElementById('pageTitle').innerText = `${mode.toUpperCase()} TIER LIST`;
+                document.getElementById('pageSubtitle').innerText = `Top players in ${mode.toUpperCase()}`;
+            }
+            
+            renderCurrentView();
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                document.getElementById('profileModal').classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        document.getElementById('searchBar').setAttribute('aria-label', 'Search players by Minecraft username');
+        document.getElementById('searchBar').addEventListener('input', (e) => {
+            const term = e.target.value.trim().toLowerCase();
+            const filtered = allPlayers.filter(p => String(p.username || '').toLowerCase().includes(term));
+            if (currentMode === 'overall') renderListView(filtered);
+            else renderGridView(filtered, currentMode);
+        });
+    </script>
+</body>
+</html>
